@@ -56,15 +56,20 @@ def get_db_connection():
     return conn
 
 # --- Logic Functions ---
-def determine_priority(category, sentiment):
+def determine_priority(text, category, sentiment):
     # Logic: 
     # Negative sentiment + Critical Category -> High (Red)
-    # Neutral/Positive -> Low (Green)
-    # Others -> Medium (Yellow)
+    # Urgent Keywords -> High (Red)
+    # Appreciation -> Low
+    
+    urgent_keywords = ['urgent', 'emergency', 'critical', 'immediately', 'medicine', 'passport', 'deadline']
+    is_urgent = any(k in text.lower() for k in urgent_keywords)
     
     is_critical_category = category in ['Lost Parcel', 'Damaged Item', 'Staff Behavior', 'Refund / Compensation']
     
-    if sentiment < -0.4 and is_critical_category:
+    if category == 'Appreciation':
+        return "Low"
+    elif is_urgent or (sentiment < -0.4 and is_critical_category):
         return "High"
     elif sentiment < -0.2:
         return "Medium"
@@ -110,7 +115,7 @@ def submit_complaint():
     sentiment = sia.polarity_scores(text)["compound"]
     
     # 3. Determine Priority
-    priority = determine_priority(category, sentiment)
+    priority = determine_priority(text, category, sentiment)
     
     # 4. Save to DB
     conn = get_db_connection()

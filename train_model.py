@@ -25,21 +25,20 @@ def train():
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
     print("Setting up pipeline and grid search...")
-    # Pipeline: TF-IDF -> Logistic Regression
+    # Pipeline: TF-IDF -> LinearSVC
+    # LinearSVC is generally better for text classification than Logistic Regression
+    from sklearn.svm import LinearSVC
+    from sklearn.calibration import CalibratedClassifierCV
     pipeline = Pipeline([
-        ('tfidf', TfidfVectorizer(stop_words='english')),
-        ('clf', LogisticRegression(random_state=42, max_iter=2000))
+        ('tfidf', TfidfVectorizer(ngram_range=(1, 3))),  # Removed stop_words='english' to keep negations
+        ('clf', CalibratedClassifierCV(LinearSVC(random_state=42, dual='auto')))
     ])
     
     # Hyperparameters to tune
-    # ngram_range: (1,1) = unigrams only, (1,2) = unigrams + bigrams (better for phrases like "not delivered")
-    # C: Inverse of regularization strength (smaller = stronger regularization)
     parameters = {
-        'tfidf__ngram_range': [(1, 1), (1, 2)],
         'tfidf__max_df': [0.75, 1.0],
         'tfidf__min_df': [1, 2],
-        'clf__C': [0.1, 1, 10],
-        'clf__solver': ['lbfgs']
+        'clf__estimator__C': [0.1, 1, 10],
     }
     
     grid_search = GridSearchCV(pipeline, parameters, cv=5, n_jobs=-1, verbose=1)
